@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -50,13 +51,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Servo channel:  Servo to open left claw:  "left_hand"
  * Servo channel:  Servo to open right claw: "right_hand"
  */
-public class Hardware
-{
+public class Hardware {
     /* Public OpMode members. */
-    public DcMotor  driveLeftBack   = null;
-    public DcMotor  driveRightBack  = null;
-    public DcMotor  driveLeftFront   = null;
-    public DcMotor  driveRightFront  = null;
+    DcMotor driveLeftBack = null;
+    DcMotor driveRightBack = null;
+    DcMotor driveLeftFront = null;
+    DcMotor driveRightFront = null;
+
+    DcMotor rightCollector = null;
+    DcMotor leftCollector = null;
 
 
     //Declaration of the drive motor types.
@@ -71,8 +74,8 @@ public class Hardware
 
 
     /* local OpMode members. */
-    HardwareMap hwMap           =  null;
-    private ElapsedTime period  = new ElapsedTime();
+    HardwareMap hwMap =  null;
+    private ElapsedTime period = new ElapsedTime();
 
     /* Constructor */
     public Hardware(){
@@ -89,7 +92,15 @@ public class Hardware
         driveRightBack = hwMap.get(DcMotor.class, "drb");
         driveRightFront = hwMap.get(DcMotor.class, "drf");
         driveLeftFront = hwMap.get(DcMotor.class, "dlf");
-//
+
+        rightCollector = hwMap.get(DcMotor.class, "rc");
+        leftCollector = hwMap.get(DcMotor.class, "lc");
+
+
+
+        driveLeftBack.setDirection(DcMotorSimple.Direction.REVERSE);
+        driveLeftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+
 
         // Set all motors to zero power
 
@@ -140,5 +151,9 @@ public class Hardware
         }
     }
 
+    public void setCollectMotorsPower(double power){
+        rightCollector.setPower(power);
+        leftCollector.setPower(-power);
+    }
  }
 
