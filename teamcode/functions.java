@@ -5,15 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.Range;
 
 @Autonomous(name = "ToPointTest",group = "Apollo")
-public class functions extends LinearOpMode {
-    public  double robotX = 0;
-    public  double robotY = 0;
-    public double targrtX = 100;
-    public double targrtY = 100;
-    public double speed = 0;
-    public double angle = 0;
-    public double distance = 0;
-    public double motorPower = 0;
+public abstract class functions extends LinearOpMode {
     static final double     HEADING_THRESHOLD       = 1 ;      // As tight as we can make it with an integer gyro
     static final double     P_TURN_COEFF            = 0.1;     // Larger is more responsive, but also less stable
 
@@ -21,32 +13,20 @@ public class functions extends LinearOpMode {
     Hardware robot = new Hardware();
     @Override
     public void runOpMode()  {
-        robot.init(hardwareMap);
-        telemetry.addData("state","waiting");
-        telemetry.addData("version","1.0");
-        telemetry.update();
-        waitForStart();
-        //turn(0.5,180);
-        //driveToPosition();
-        while (opModeIsActive()){
-            telemetry.addData("",robot.driveRightBack.getCurrentPosition());
-            telemetry.update();
-        }
-
-
     }
-    public void driveToPosition(){//Math.hypot(targrtX-robotX,targrtY-robotY)
-        double distanceToTarget = Math.sqrt(Math.pow(targrtX - robotX,2) + Math.pow(targrtY - robotY,2));
+    public void driveToPosition(double targetX, double targetY){
+        double distanceToTarget = Math.sqrt(Math.pow(targetX - robot.position.x,2) + Math.pow(targetY - robot.position.y,2));
         double encoder = 0;
+        double distance = 0;
         while ( distanceToTarget > 20 && opModeIsActive()){
-            distanceToTarget = Math.sqrt(Math.pow(targrtX - robotX,2) + Math.pow(targrtY - robotY,2));
+            distanceToTarget = Math.sqrt(Math.pow(targetX - robot.position.x,2) + Math.pow(targetY - robot.position.y,2));
             robot.setDriveMotorsPower(0.2, Hardware.DRIVE_MOTOR_TYPES.ALL);
             distance = robot.driveRightBack.getCurrentPosition() - encoder;
-            robotX += distance*Math.cos(Math.toRadians(robot.GetGyroAngle()));
-            robotY += distance*Math.sin(Math.toRadians(robot.GetGyroAngle()));
+            robot.position.x += distance*Math.cos(Math.toRadians(robot.GetGyroAngle()));
+            robot.position.y += distance*Math.sin(Math.toRadians(robot.GetGyroAngle()));
             telemetry.addData("state","driving");
-            telemetry.addData("robotX",robotX);
-            telemetry.addData("roboty",robotY);
+            telemetry.addData("robot.position.x",robot.position.x);
+            telemetry.addData("robot.position.y",robot.position.y);
             telemetry.addData("dic",distance);
             telemetry.addData("dic to target",distanceToTarget);
             telemetry.addData("encoer",robot.driveRightBack.getCurrentPosition());
@@ -60,11 +40,12 @@ public class functions extends LinearOpMode {
 
     }
     public void turn(double speed, double dgreeTarget){
-       while (robot.GetGyroAngle() == dgreeTarget) {
-           motorPower = (dgreeTarget - robot.GetGyroAngle()) / 180;
-           robot.setDriveMotorsPower(motorPower * (speed + 1), Hardware.DRIVE_MOTOR_TYPES.RIGHT);
-           robot.setDriveMotorsPower(-motorPower * (speed + 1), Hardware.DRIVE_MOTOR_TYPES.LEFT);
-       }
+        double motorPower = 0;
+        while (robot.GetGyroAngle() == dgreeTarget) {
+            motorPower = (dgreeTarget - robot.GetGyroAngle()) / 180;
+            robot.setDriveMotorsPower(motorPower * (speed + 1), Hardware.DRIVE_MOTOR_TYPES.RIGHT);
+            robot.setDriveMotorsPower(-motorPower * (speed + 1), Hardware.DRIVE_MOTOR_TYPES.LEFT);
+        }
 
 
 

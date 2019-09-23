@@ -51,11 +51,10 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  */
 
 @TeleOp(name="Tetleop", group="APOLLO")
-public class Teleop extends LinearOpMode{
+public class Teleop extends functions{
 
     double speedFactor = 1;
     Hardware robot           = new Hardware();   // Use a Pushbot's hardware
-    functions function = new functions();
 
 
 

@@ -62,6 +62,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
  */
 public class Hardware {
     /* Public OpMode members. */
+    Point position = new Point(0,0);
+
     DcMotor driveLeftBack = null;
     DcMotor driveRightBack = null;
     DcMotor driveLeftFront = null;
@@ -134,6 +136,12 @@ public class Hardware {
         driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         driveRightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+        driveLeftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        driveLeftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        driveLeftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         // Set all motors to zero power
 
 
@@ -187,5 +195,13 @@ public class Hardware {
 //        rightCollector.setPower(power);
 //        leftCollector.setPower(-power);
     }
+    public double getX(){
+        return driveLeftBack.getCurrentPosition();
+    }
+
+    public double getY(){
+        return driveRightBack.getCurrentPosition();
+    }
+
  }
 
