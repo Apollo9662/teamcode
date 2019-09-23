@@ -50,11 +50,14 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Teleop", group="APOLLO")
+@TeleOp(name="Tetleop", group="APOLLO")
 public class Teleop extends LinearOpMode{
 
     double speedFactor = 1;
     Hardware robot           = new Hardware();   // Use a Pushbot's hardware
+    functions function = new functions();
+
+
 
 
     public void runOpMode() {
@@ -128,6 +131,7 @@ public class Teleop extends LinearOpMode{
                 }
             }
             else {
+
                 degree = (int) Math.toDegrees(Math.atan2(left_y, left_x)) + 90;
 
                 telemetry.addData("Angle", degree);

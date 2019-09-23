@@ -29,11 +29,20 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.hardware.Sensor;
+
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  * This is NOT an opmode.
@@ -58,8 +67,9 @@ public class Hardware {
     DcMotor driveLeftFront = null;
     DcMotor driveRightFront = null;
 
-    DcMotor rightCollector = null;
-    DcMotor leftCollector = null;
+//    DcMotor rightCollector = null;
+//    DcMotor leftCollector = null;
+    BNO055IMU imu;
 
 
     //Declaration of the drive motor types.
@@ -81,11 +91,31 @@ public class Hardware {
     public Hardware(){
 
     }
+    public float GetGyroAngle(){
+
+        Orientation angles =imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return(AngleUnit.DEGREES.fromUnit(angles.angleUnit,angles.firstAngle));
+    }
 
     /* Initialize standard Hardware interfaces */
     public void init(HardwareMap ahwMap) {
-        // Save reference to Hardware map
         hwMap = ahwMap;
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        imu = hwMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+        // Save reference to Hardware map
+
 
         // Define and Initialize Motors
         driveLeftBack = hwMap.get(DcMotor.class, "dlb");
@@ -93,15 +123,17 @@ public class Hardware {
         driveRightFront = hwMap.get(DcMotor.class, "drf");
         driveLeftFront = hwMap.get(DcMotor.class, "dlf");
 
-        rightCollector = hwMap.get(DcMotor.class, "rc");
-        leftCollector = hwMap.get(DcMotor.class, "lc");
+//        rightCollector = hwMap.get(DcMotor.class, "rc");
+//        leftCollector = hwMap.get(DcMotor.class, "lc");
 
 
 
         driveLeftBack.setDirection(DcMotorSimple.Direction.REVERSE);
         driveLeftFront.setDirection(DcMotorSimple.Direction.REVERSE);
 
-
+        driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        driveRightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         // Set all motors to zero power
 
 
@@ -131,8 +163,8 @@ public class Hardware {
             case DIAGONAL_LEFT:
                 driveRightFront.setPower(power);
                 driveLeftBack.setPower(power);
-                driveLeftFront.setPower(power*-0);
-                driveRightBack.setPower(power*-0);
+                driveLeftFront.setPower(power);
+                driveRightBack.setPower(power);
                 break;
             case DIAGONAL_RIGHT:
                driveLeftFront.setPower(power);
@@ -152,8 +184,8 @@ public class Hardware {
     }
 
     public void setCollectMotorsPower(double power){
-        rightCollector.setPower(power);
-        leftCollector.setPower(-power);
+//        rightCollector.setPower(power);
+//        leftCollector.setPower(-power);
     }
  }
 
