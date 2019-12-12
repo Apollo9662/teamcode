@@ -29,12 +29,9 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
+import static java.lang.Math.abs;
 
 /**
  * This OpMode uses the common Pushbot hardware class to define the devices on the robot.
@@ -50,15 +47,35 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Tetleop", group="APOLLO")
-public class Teleop extends functions{
+@TeleOp(name="Teleop", group="APOLLO")
+public class Teleop extends functions {
 
     double speedFactor = 1;
-    Hardware robot           = new Hardware();   // Use a Pushbot's hardware
+    Hardware robot = new Hardware();
+    Thread reverseDrive = new reverseDrive();
+    Thread driveOperation = new driveOperation();
+    Thread slidesOperation = new slidesOperation();
+    Thread clawOperation = new clawOperation();
+    InputOperation inputOperation = new InputOperation();
+    double collectionSpeed = 1;
+
+    private boolean isOpen = false;
+    private boolean isOpen2 = false;
 
 
+    double diameterPulleySlideSide = 1;
+    double diameterPulleySlideUp = 1;
 
+    double topLimitSlideUp = 2750.278529;
+    double topLimitSlideSide = 916.75950;
 
+    static final double countsPerUpSlide = 537.6;    // eg: TETRIX Motor Encoder
+    static final double  pullyDiameter = 4.0;     // For figuring circumference
+    static final double COUNTS_PER_INCH = (countsPerUpSlide) / (pullyDiameter * Math.PI);
+
+    static final long threadSleepTimeOut = 50; // 50 msec
+
+    int correnctLevel = 0;
     public void runOpMode() {
 
 
@@ -66,86 +83,263 @@ public class Teleop extends functions{
          * The init() method of the hardware class does all the work here
          */
         robot.init(hardwareMap);
-
-
-
-        double right_x;
-        double right_y;
-        double left_x;
-        double left_y;
-        double degree;
-        double drive_power;
-
-
-
-
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Say", "Hello Driver");    //
         telemetry.update();
 
         waitForStart();
 
-        // run until the en of the match (driver presses STOP)
+
+        driveOperation.start();
+        clawOperation.start();
+        slidesOperation.start();
+        reverseDrive.start();
+        inputOperation.start();
+
+        // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            left_x = gamepad1.left_stick_x;
-            left_y = -gamepad1.left_stick_y;
-            right_x = gamepad1.right_stick_x;
-            right_y = -gamepad1.right_stick_y;
 
-            if (gamepad1.left_stick_button || gamepad1.right_stick_button) {
-                speedFactor = 0.5;
-            }
-            else {
-                speedFactor = 1;
-            }
+            telemetry.addData("Robot  X", robot.getX());
+            telemetry.addData("Robot  Y", robot.getY());
 
-            if(right_x >= 0.2 || right_y >= 0.2 || right_x <= -0.2 || right_y <= -0.2) {
-
-                if (left_x < -0.05 && Math.abs(left_y) > 0.05 && right_x < -0.05 && Math.abs(right_y) > 0.05) {
-                    robot.setDriveMotorsPower(left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_LEFT);
-                    telemetry.addData("", "DIAGONAL_LEFT");
-                    telemetry.update();
-                }
-                else if (left_x > 0.05 && Math.abs(left_y) > 0.05 && right_x > 0.05 && Math.abs(right_y) > 0.05) {
-                    robot.setDriveMotorsPower(left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_RIGHT);
-                    telemetry.addData("", "DIAGONAL_RIGHT");
-                    telemetry.update();
-                }
-                else if (left_x < -0.05 && right_x < -0.05) {
-                    robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
-                    telemetry.addData("", "LEFT");
-                    telemetry.update();
-                }
-                else if (left_x > 0.05 && right_x > 0.05) {
-                    robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
-                    telemetry.addData("", "RIGHT");
-                    telemetry.update();
-                }
-                else {
-                    robot.setDriveMotorsPower(left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.LEFT);
-                    robot.setDriveMotorsPower(right_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
-                    telemetry.addData("", "TANK");
-                    telemetry.update();
-
-                }
-            }
-            else {
-
-                degree = (int) Math.toDegrees(Math.atan2(left_y, left_x)) + 90;
-
-                telemetry.addData("Angle", degree);
-                degree += 45;
-
-                drive_power = Math.sqrt(Math.pow(left_x, 2) + Math.pow(left_y, 2));
-
-                left_y = drive_power * Math.sin(Math.toRadians(degree));
-                left_x = drive_power * Math.cos(Math.toRadians(degree));
-
-
-                robot.setDriveMotorsPower(-left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_LEFT);
-                robot.setDriveMotorsPower(-left_x * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_RIGHT);
-            }
-            robot.setCollectMotorsPower(gamepad1.right_trigger);
+            telemetry.update();
         }
     }
+
+
+    private class clawOperation extends Thread{
+        public clawOperation(){ this.setName("clawOperation");}
+        @Override
+        public void run(){
+            try {
+                while (opModeIsActive()){
+                    while (!isInterrupted() && opModeIsActive()){
+                        if (gamepad2.b) {
+                            if (isOpen) {
+                                robot.outPutCloseServo.setPosition(0.05);
+                                isOpen = false;
+                                while (gamepad2.b == false) {
+                                    Thread.sleep(threadSleepTimeOut);
+                                }
+                            } else {
+                                robot.outPutCloseServo.setPosition(0.75);
+                                isOpen = true;
+                                while (gamepad2.b == false) {
+                                    Thread.sleep(threadSleepTimeOut);
+                                }
+                            }
+                        }
+
+                        if (gamepad2.a) {
+                            if (isOpen2) {
+                                robot.outPutCloseServo.setPosition(0.05);
+                                isOpen2 = false;
+                                while (gamepad2.a == false) {
+                                    Thread.sleep(threadSleepTimeOut);
+                                }
+                            } else {
+                                robot.outPutCloseServo.setPosition(0.75);
+                                isOpen2 = true;
+                                while (gamepad2.a == false) {
+                                    Thread.sleep(threadSleepTimeOut);
+                                }
+                            }
+                        }
+
+                        if (gamepad2.dpad_left || gamepad2.dpad_right) {
+                            robot.turret.setPosition(0.05);
+                        }
+                        if (gamepad2.dpad_down || gamepad2.dpad_up) {
+                            robot.turret.setPosition(0.3);
+                        }
+                    }
+                }
+                Thread.sleep(5);
+            }
+            catch (InterruptedException e){}
+        }
+    }
+
+
+
+    private class slidesOperation extends Thread {
+        public slidesOperation() { this.setName("slidesOperation");}
+
+        @Override
+        public void run() {
+            try {
+                while (opModeIsActive()) {
+                    while (!isInterrupted() && opModeIsActive()) {
+                        if (robot.elevatorSide.getCurrentPosition() > topLimitSlideSide || robot.elevatorSide.getCurrentPosition() < 0) {
+                            robot.elevatorSide.setPower(0);
+                        } else {
+                            robot.elevatorSide.setPower(gamepad2.right_stick_y);
+                        }
+
+                        if (robot.elevatorUp.getCurrentPosition() > topLimitSlideUp || robot.elevatorUp.getCurrentPosition() < 0) {
+                            robot.elevatorUp.setPower(0);
+
+                        } else {
+                            robot.elevatorUp.setPower(gamepad2.left_stick_y);
+                        }
+                    }
+                }
+                Thread.sleep(threadSleepTimeOut);
+            } catch (InterruptedException e) {}
+        }
+    }
+
+
+        private class driveOperation extends Thread {
+            public driveOperation() {
+                this.setName("driveOperation");
+            }
+
+            @Override
+            public void run() {
+                try {
+                    while (opModeIsActive()) {
+                        while (!isInterrupted() && opModeIsActive()) {
+                            double left_x = gamepad1.left_stick_x;
+                            double left_y = -gamepad1.left_stick_y;
+                            double right_x = gamepad1.right_stick_x;
+                            double right_y = -gamepad1.right_stick_y;
+
+                            if (left_x < -0.05 && abs(left_y) > 0.05 && right_x < -0.05 && abs(right_y) > 0.05) {
+                                robot.setDriveMotorsPower(left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_LEFT);
+                                telemetry.addData("", "DIAGONAL_LEFT");
+
+                            } else if (left_x > 0.05 && abs(left_y) > 0.05 && right_x > 0.05 && abs(right_y) > 0.05) {
+                                robot.setDriveMotorsPower(left_y * speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_RIGHT);
+                                telemetry.addData("", "DIAGONAL_RIGHT");
+
+                            } else if (left_x < -0.05 && right_x < -0.05) {
+                                robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
+                                telemetry.addData("", "LEFT");
+
+                            } else if (left_x > 0.05 && right_x > 0.05) {
+                                robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
+                                telemetry.addData("", "RIGHT");
+
+                            } else {
+                                robot.setDriveMotorsPower(left_y, Hardware.DRIVE_MOTOR_TYPES.LEFT);
+                                robot.setDriveMotorsPower(right_y, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
+                                telemetry.addData("", "TANK");
+
+
+                            }
+                            telemetry.addData("X position", robot.getX());
+                            telemetry.addData("Y position", robot.getY());
+
+                        }
+                    }
+                    Thread.sleep(threadSleepTimeOut);
+                } catch (InterruptedException e) {
+                }
+
+            }
+        }
+
+        private class reverseDrive extends Thread {
+            public reverseDrive() {
+                this.setName("reverseDrive");
+            }
+
+            // called when tread.start is called. thread stays in loop to do what it does until exit is
+            // signaled by main code calling thread.interrupt.
+            @Override
+            public void run() {
+                try {
+                    while (opModeIsActive()) {
+                        while (!isInterrupted() && opModeIsActive()) {
+                            if (gamepad1.left_bumper) {
+                                robot.reverse();
+                                while (gamepad1.left_bumper && opModeIsActive()) {
+                                    continue;
+                                }
+                            }
+                        }
+                        Thread.sleep(threadSleepTimeOut);
+                    }
+                } catch (InterruptedException e) {
+                }
+            }
+        }
+
+
+    private class InputOperation extends Thread {
+        public InputOperation() {
+            this.setName("InputOperation");
+        }
+
+        // called when tread.start is called. thread stays in loop to do what it does until exit is
+        // signaled by main code calling thread.interrupt.
+        @Override
+        public void run() {
+            try {
+                while (opModeIsActive()) {
+
+                    if(gamepad1.left_trigger > 0.2) {
+                        robot.setCollectMotorsPower(collectionSpeed * gamepad1.left_trigger);
+                    }
+                    if(gamepad1.right_trigger > 0.2) {
+                        robot.setCollectMotorsPower(-collectionSpeed * gamepad1.right_trigger);
+                    }else if(gamepad1.left_trigger < 0.2){
+                        robot.setCollectMotorsPower(0);
+                    }
+
+
+                    if (gamepad1.right_bumper) {
+                        collectionSpeed = 0.3;
+                    } else {
+                        collectionSpeed = 1;
+                    }
+                    Thread.sleep(10);
+                }
+            } catch (InterruptedException e) {
+            }
+        }
+    }
+
+
+        private class stoneLevel extends Thread{
+        public stoneLevel(){this.setName("stoneLevel");}
+
+        @Override
+            public void run(){
+            try {
+                while (opModeIsActive()){
+                    while (!isInterrupted() && opModeIsActive()){
+                        if (gamepad2.left_bumper){
+                           if (correnctLevel<7) {
+                               correnctLevel = correnctLevel + 1;
+                           }
+                        } else {
+                            if (gamepad2.right_bumper){
+                                if (correnctLevel>0) {
+                                    correnctLevel = correnctLevel - 1;
+                                }
+                            }
+                        }
+                        if (gamepad2.left_trigger>0.6){
+                            robot.elevatorUp.setTargetPosition((int)COUNTS_PER_INCH*5*correnctLevel);
+
+                        }
+
+                    }
+                    Thread.sleep(threadSleepTimeOut);
+                }
+
+            }catch (InterruptedException e){
+
+            }
+        }
+
+        }
+
 }
+
+
+
+
+

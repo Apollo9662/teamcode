@@ -29,12 +29,8 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.Range;
-
-import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 
 /**
  * This OpMode uses the common Pushbot hardware class to define the devices on the robot.
@@ -91,44 +87,33 @@ public class mech_test extends LinearOpMode {
             if (left_x < -0.05 && Math.abs(left_y) >0.05 && right_x < -0.05 && Math.abs(right_y) > 0.05){
                 robot.setDriveMotorsPower(left_y*speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_LEFT);
                 telemetry.addData("","DIAGONAL_LEFT");
-                telemetry.update();
+
             }
             else if (left_x > 0.05 && Math.abs(left_y) >0.05 && right_x > 0.05 && Math.abs(right_y) > 0.05){
                 robot.setDriveMotorsPower(left_y*speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_RIGHT);
                 telemetry.addData("","DIAGONAL_RIGHT");
-                telemetry.update();
+
             }
             else if (left_x <-0.05 && right_x <-0.05) {
                 robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
                 telemetry.addData("","LEFT");
-                telemetry.update();
+
             }
             else if (left_x > 0.05 && right_x >0.05) {
                 robot.setDriveMotorsPower(left_x, Hardware.DRIVE_MOTOR_TYPES.SIDE_WAYS);
                 telemetry.addData("","RIGHT");
-                telemetry.update();
+
             }
             else{
                robot.setDriveMotorsPower(left_y, Hardware.DRIVE_MOTOR_TYPES.LEFT);
                robot.setDriveMotorsPower(right_y, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
                 telemetry.addData("","TANK");
-                telemetry.update();
+
 
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            telemetry.addData("X position",robot.getX());
+            telemetry.addData("Y position",robot.getY());
+            telemetry.update();
         }
     }
 }

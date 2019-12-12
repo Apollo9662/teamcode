@@ -2,45 +2,54 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Math.*;
-import static org.firstinspires.ftc.teamcode.MathFunctions.AngleWrap;
+import static java.lang.Math.abs;
+import static java.lang.Math.atan2;
+import static java.lang.Math.cos;
+import static java.lang.Math.hypot;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.Math.sin;
 import static org.firstinspires.ftc.teamcode.MathFunctions.dist2D;
 import static org.firstinspires.ftc.teamcode.MathFunctions.getCircleLineIntersectionPoint;
 
 public class RobotMovement extends LinearOpMode {
     Hardware robot = new Hardware();
-    static final double     P_TURN_COEFF           = 0.15;     // Larger is more responsive, but also less stable
+    CurvePoint followMe;
+    static final double P_TURN_COEFF = 0.01;     // Larger is more responsive, but also less stable
     private double mindistanceToTarget = 20;
+    double error;
+    double steer;
+    double disaierd_angle;
 
-    public ArrayList<CurvePoint> followCurve(ArrayList<CurvePoint> allPoints, double followAngle){
-        CurvePoint followMe = getFollowPointPath(allPoints,allPoints.get(0).followDistance);
-        telemetry.addData("followMe:","X => " + followMe.x + " Y => " + followMe.y );
+    public ArrayList<CurvePoint> followCurve(ArrayList<CurvePoint> allPoints, double speed) {
+        followMe = getFollowPointPath(allPoints, allPoints.get(0).followDistance);
+        telemetry.addData("followMe:", "X => " + followMe.x + " Y => " + followMe.y);
 
-        return gotoPosition(followMe.x,followMe.y,followMe.moveSpeed,followAngle,followMe.turnSpeed,allPoints);
+
+        //double x, double y, double speed, double P_DRIVE_COEFF, ArrayList<CurvePoint> path, double leftSpeed, double rightSpeed, double max
+        return gotoPosition(followMe.x, followMe.y, speed, 0.1, allPoints,0,0 , 0);
     }
 
-    public CurvePoint getFollowPointPath(ArrayList<CurvePoint> pathPoints,double followRadius){
+    public CurvePoint getFollowPointPath(ArrayList<CurvePoint> pathPoints, double followRadius) {
 
         CurvePoint followMe = new CurvePoint(pathPoints.get(0));
 
-        for(int i = 0; i < pathPoints.size() - 1; i++){
-            telemetry.addData("i",i);
+        for (int i = 0; i < pathPoints.size() - 1; i++) {
+            telemetry.addData("i", i);
             CurvePoint startLine = pathPoints.get(0);//            CurvePoint startLine = pathPoints.get(i);
             CurvePoint endLine = pathPoints.get(1);//             CurvePoint endLine = pathPoints.get(i + 1);
-            List<Point> intersections = getCircleLineIntersectionPoint(robot.position,followRadius,startLine.toPoint(),endLine.toPoint());
+            List<Point> intersections = getCircleLineIntersectionPoint(robot.point(), followRadius, startLine.toPoint(), endLine.toPoint());
             //telemetry.addData("intersections.size()",intersections.size());
             double longestDistance = 10000000;
 
-            for(Point thisIntersection : intersections){
-                double distance = abs(dist2D(thisIntersection,robot.position));
+            for (Point thisIntersection : intersections) {
+                double distance = abs(dist2D(thisIntersection, robot.point()));
 
-                if(distance < longestDistance){
-                    telemetry.addData("thisIntersection",new Point(thisIntersection.x,thisIntersection.y));
+                if (distance < longestDistance) {
+                    telemetry.addData("thisIntersection", new Point(thisIntersection.x, thisIntersection.y));
                     longestDistance = distance;
                     followMe.setPoint(thisIntersection);
                 }
@@ -54,47 +63,49 @@ public class RobotMovement extends LinearOpMode {
     }
 
     /**
-     *  @param x
+     * @param x
      * @param y
-     * @param movementSpeed
-     * @param preferredAngle
-     * @param turnSpeed
+     * @param speed
+     * @param P_DRIVE_COEFF
+     * @param path
+     * @param leftSpeed
+     * @param rightSpeed
+     * @param max
      * @return
      */
-    public ArrayList<CurvePoint> gotoPosition(double x, double y, double movementSpeed, double preferredAngle, double turnSpeed , ArrayList<CurvePoint> path){
+    public ArrayList<CurvePoint> gotoPosition(double x, double y, double speed, double P_DRIVE_COEFF, ArrayList<CurvePoint> path, double leftSpeed, double rightSpeed, double max) {
 
-        double distanceToTarget = hypot(x - botX(),y - botY());
-        telemetry.addData("distanceToTarget",distanceToTarget);
-        double absoluteAngleToTarget = atan2(y - botY(), x - botX());
-        // telemetry.addData("absoluteAngleToTarget", absoluteAngleToTarget);
-        double relativeAngleToPoint = AngleWrap(absoluteAngleToTarget - (robot.GetGyroAngle() - toRadians(90)));
-        // telemetry.addData("relativeAngleToPoint", relativeAngleToPoint);
-        double relativeXToPoint = sin(relativeAngleToPoint) * distanceToTarget;
-        //telemetry.addData("relativeXToPoint", relativeXToPoint);
-        double relativeYToPoint = cos(relativeAngleToPoint) * distanceToTarget;
-        //telemetry.addData("relativeYToPoint", relativeYToPoint);
+        // adjust relative speed based on heading error.
+        disaierd_angle = Math.toDegrees(Math.atan2(y, x));
+        error = getError(disaierd_angle);
+        steer = getSteer(error, P_DRIVE_COEFF);
 
 
-        double movementXPower = relativeYToPoint / (abs(relativeXToPoint) + abs(relativeYToPoint));
-        //telemetry.addData("movementXPower", movementXPower);
-        double movementYPower = relativeXToPoint / (abs(relativeXToPoint) + abs(relativeYToPoint));
-        //telemetry.addData("movementYPower", movementYPower);
+        leftSpeed = speed;
+        rightSpeed = speed;
+        // if driving in reverse, the motor correction also needs to be reversed
+        if(error > 2) {
+            leftSpeed -= steer;
+            rightSpeed += steer;
+        }
 
-        movementXPower *= movementSpeed;
-        movementYPower *= movementSpeed;
-        drive(movementXPower, movementYPower);
-        double relativeTurnAngle = relativeAngleToPoint - toRadians(180) + preferredAngle;
-        turn(relativeTurnAngle, Range.clip(relativeTurnAngle / toRadians(30), -1, 1) * turnSpeed);
-        if(distanceToTarget < mindistanceToTarget){
-            for(int i = 0; i < path.size();i++){
-                if(path.get(i).toPoint().equals(new Point(x, y))){
-                    path.remove(path.get(i));
-                }
+        // Normalize speeds if either one exceeds +/- 1.0;
+        max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
+        if (max > 1.0) {
+            leftSpeed /= max;
+            rightSpeed /= max;
+        }
+        robot.setDriveMotorsPower(leftSpeed, Hardware.DRIVE_MOTOR_TYPES.LEFT);
+        robot.setDriveMotorsPower(rightSpeed, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
+
+        for(int i = 0; i < path.size();i++){
+            if(path.get(i).toPoint().equals(new Point(robot.getX(), robot.getY()))){
+                path.remove(path.get(i));
             }
         }
         return path;
-
     }
+
 
     /**
      *
@@ -195,4 +206,9 @@ public class RobotMovement extends LinearOpMode {
         return max(-maxmin, min(value, maxmin));
     }
 
+
+
+
+
 }
+

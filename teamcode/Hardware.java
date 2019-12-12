@@ -29,11 +29,10 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import android.hardware.Sensor;
-
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -61,20 +60,39 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
  * Servo channel:  Servo to open right claw: "right_hand"
  */
 public class Hardware {
+    public Point position = new Point(0,0);
     /* Public OpMode members. */
-    Point position = new Point(0,0);
+    Point reset = new Point(0,0);
 
-    DcMotor driveLeftBack = null;
-    DcMotor driveRightBack = null;
-    DcMotor driveLeftFront = null;
-    DcMotor driveRightFront = null;
+    DcMotorEx driveLeftBack = null;
+    DcMotorEx driveRightBack = null;
+    DcMotorEx driveLeftFront = null;
+    DcMotorEx driveRightFront = null;
 
-//    DcMotor rightCollector = null;
-//    DcMotor leftCollector = null;
+    DcMotor rightCollector = null;
+    DcMotor leftCollector = null;
+
+    Servo outPutCloseServo = null;
+    Servo outPutCloseServo2 = null;
+
+    Servo turret  = null;
+
+    DcMotor elevatorUp = null;
+    DcMotor elevatorSide = null;
     BNO055IMU imu;
 
+    public Point point() {
+        return new Point(getX(),getY());
+    }
 
-    //Declaration of the drive motor types.
+    public void reverse() {
+        driveLeftFront.setDirection(driveLeftFront.getDirection().inverted());
+        driveRightFront.setDirection(driveRightFront.getDirection().inverted());
+        driveRightBack.setDirection(driveRightBack.getDirection().inverted());
+        driveLeftBack.setDirection(driveLeftBack.getDirection().inverted());
+    }
+
+
     public enum DRIVE_MOTOR_TYPES {
         LEFT,
         RIGHT,
@@ -83,7 +101,6 @@ public class Hardware {
         DIAGONAL_LEFT,
         ALL
     }
-
 
     /* local OpMode members. */
     HardwareMap hwMap =  null;
@@ -120,33 +137,43 @@ public class Hardware {
 
 
         // Define and Initialize Motors
-        driveLeftBack = hwMap.get(DcMotor.class, "dlb");
-        driveRightBack = hwMap.get(DcMotor.class, "drb");
-        driveRightFront = hwMap.get(DcMotor.class, "drf");
-        driveLeftFront = hwMap.get(DcMotor.class, "dlf");
+        driveLeftBack = hwMap.get(DcMotorEx.class, "dlb");
+        driveRightBack = hwMap.get(DcMotorEx.class, "drb");
+        driveRightFront = hwMap.get(DcMotorEx.class, "drf");
+        driveLeftFront = hwMap.get(DcMotorEx.class, "dlf");
 
-//        rightCollector = hwMap.get(DcMotor.class, "rc");
-//        leftCollector = hwMap.get(DcMotor.class, "lc");
+        rightCollector = hwMap.get(DcMotor.class, "rc");
+        leftCollector = hwMap.get(DcMotor.class, "lc");
+
+        elevatorUp = hwMap.get(DcMotor.class, "eu");
+        elevatorSide = hwMap.get(DcMotor.class, "es");
 
 
+        outPutCloseServo = hwMap.get(Servo.class,"os");
+        outPutCloseServo2 = hwMap.get(Servo.class,"os2" );
+
+        turret = hwMap.get(Servo.class, "t");
 
         driveLeftBack.setDirection(DcMotorSimple.Direction.REVERSE);
         driveLeftFront.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         driveRightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-
-        driveLeftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         driveLeftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        driveLeftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Set all motors to zero power
+        driveRightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        driveRightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        driveLeftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        driveLeftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        elevatorSide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        elevatorUp.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        elevatorSide.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        elevatorUp.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
 
-        // Set all motors to run without encoders.
-        // May want to use RUN_USING_ENCODERS if encoders are installed.
+        reset.x = getX();
+        reset.y = getY();
 
 
     }
@@ -155,52 +182,52 @@ public class Hardware {
     public void setDriveMotorsPower(double power, DRIVE_MOTOR_TYPES driverMotorType){
         switch (driverMotorType){
             case LEFT:
-                driveLeftFront.setPower(power);
-                driveLeftBack.setPower(power);
+                driveLeftFront.setVelocity(power);
+                driveLeftBack.setVelocity(power);
                 break;
             case RIGHT:
-                driveRightFront.setPower(power);
-                driveRightBack.setPower(power);
+                driveRightFront.setVelocity(power);
+                driveRightBack.setVelocity(power);
                 break;
             case SIDE_WAYS:
-                driveLeftBack.setPower(-power);
-                driveLeftFront.setPower(power);
-                driveRightBack.setPower(power);
-                driveRightFront.setPower(-power);
+                driveLeftBack.setVelocity(-power);
+                driveLeftFront.setVelocity(power);
+                driveRightBack.setVelocity(power);
+                driveRightFront.setVelocity(-power);
                 break;
             case DIAGONAL_LEFT:
-                driveRightFront.setPower(power);
-                driveLeftBack.setPower(power);
-                driveLeftFront.setPower(power);
-                driveRightBack.setPower(power);
+                driveRightFront.setVelocity(power);
+                driveLeftBack.setVelocity(power);
+                driveLeftFront.setVelocity(power);
+                driveRightBack.setVelocity(power);
                 break;
             case DIAGONAL_RIGHT:
-               driveLeftFront.setPower(power);
-               driveRightBack.setPower(power);
-               driveLeftBack.setPower(power*-0.7);
-               driveRightFront.setPower(power*-0.7);
+               driveLeftFront.setVelocity(power);
+               driveRightBack.setVelocity(power);
+               driveLeftBack.setVelocity(power*-0.7);
+               driveRightFront.setVelocity(power*-0.7);
                 break;
 
             case ALL:
             default:
-                driveLeftFront.setPower(power);
-                driveLeftBack.setPower(power);
-                driveRightFront.setPower(power);
-                driveRightBack.setPower(power);
+                driveLeftFront.setVelocity(power);
+                driveLeftBack.setVelocity(power);
+                driveRightFront.setVelocity(power);
+                driveRightBack.setVelocity(power);
                 break;
         }
     }
 
     public void setCollectMotorsPower(double power){
-//        rightCollector.setPower(power);
-//        leftCollector.setPower(-power);
+        rightCollector.setPower(power);
+        leftCollector.setPower(-power);
     }
     public double getX(){
-        return driveLeftBack.getCurrentPosition();
+        return driveLeftBack.getCurrentPosition() - reset.x;
     }
 
     public double getY(){
-        return driveRightBack.getCurrentPosition();
+        return driveRightBack.getCurrentPosition() - reset.y;
     }
 
  }
