@@ -13,11 +13,11 @@ import java.util.ArrayList;
  */
 @Autonomous(name = "Pure Pursuit")
 public class Auto extends LinearOpMode {
-    RobotMovement robotMovement = new RobotMovement();
+    private RobotMovement robotMovement = new RobotMovement();
     ArrayList<CurvePoint> pathCurrent = new ArrayList();
     ArrayList<CurvePoint> path = new ArrayList();
     public void runOpMode(){
-        robotMovement.robot.init(hardwareMap);
+        robotMovement.robot.init(hardwareMap,false);
         path.add(new CurvePoint(1000,500,1.0,0.5,50,Math.toRadians(30),1.0));
         path.add(new CurvePoint(1000,0,1.0,0.5,50,Math.toRadians(30),1.0));
         path.add(new CurvePoint(200,400,1.0,0.5,50,Math.toRadians(30),1.0));

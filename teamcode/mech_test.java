@@ -59,7 +59,7 @@ public class mech_test extends LinearOpMode {
         /* Initialize the hardware variables.
          * The init() method of the hardware class does all the work here
          */
-        robot.init(hardwareMap);
+        robot.init(hardwareMap,true);
 
 
 
@@ -84,7 +84,7 @@ public class mech_test extends LinearOpMode {
             right_x = gamepad1.right_stick_x;
             right_y = -gamepad1.right_stick_y;
 
-            if (left_x < -0.05 && Math.abs(left_y) >0.05 && right_x < -0.05 && Math.abs(right_y) > 0.05){
+            if (left_x < -0.05 && Math.abs(left_y) > 0.05 && right_x < -0.05 && Math.abs(right_y) > 0.05){
                 robot.setDriveMotorsPower(left_y*speedFactor, Hardware.DRIVE_MOTOR_TYPES.DIAGONAL_LEFT);
                 telemetry.addData("","DIAGONAL_LEFT");
 

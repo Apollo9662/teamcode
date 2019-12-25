@@ -2,6 +2,11 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,18 +16,37 @@ import static java.lang.Math.cos;
 import static java.lang.Math.hypot;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.pow;
+import static java.lang.Math.round;
 import static java.lang.Math.sin;
+import static java.lang.Math.sqrt;
 import static org.firstinspires.ftc.teamcode.MathFunctions.dist2D;
 import static org.firstinspires.ftc.teamcode.MathFunctions.getCircleLineIntersectionPoint;
 
 public class RobotMovement extends LinearOpMode {
     Hardware robot = new Hardware();
     CurvePoint followMe;
+    Orientation lastAngles = new Orientation();
     static final double P_TURN_COEFF = 0.01;     // Larger is more responsive, but also less stable
-    private double mindistanceToTarget = 20;
     double error;
     double steer;
     double disaierd_angle;
+    double globalAngle, power = 0.70, correction;
+    PIDController pidDrive;
+    PIDController pidDriveEncoder;
+
+    RobotMovement(){
+        pidDrive = new PIDController(.05, 0, 0);
+        pidDrive.setOutputRange(0, power);
+        pidDrive.setInputRange(-90, 90);
+        pidDrive.enable();
+
+        pidDriveEncoder = new PIDController(0.005,0,0);
+        pidDriveEncoder.setOutputRange(0, power);
+        pidDriveEncoder.setInputRange(-90,90);
+        pidDriveEncoder.enable();
+
+    }
 
     public ArrayList<CurvePoint> followCurve(ArrayList<CurvePoint> allPoints, double speed) {
         followMe = getFollowPointPath(allPoints, allPoints.get(0).followDistance);
@@ -30,7 +54,7 @@ public class RobotMovement extends LinearOpMode {
 
 
         //double x, double y, double speed, double P_DRIVE_COEFF, ArrayList<CurvePoint> path, double leftSpeed, double rightSpeed, double max
-        return gotoPosition(followMe.x, followMe.y, speed, 0.1, allPoints,0,0 , 0);
+        return gotoPosition(followMe.x, followMe.y, allPoints);
     }
 
     public CurvePoint getFollowPointPath(ArrayList<CurvePoint> pathPoints, double followRadius) {
@@ -65,40 +89,24 @@ public class RobotMovement extends LinearOpMode {
     /**
      * @param x
      * @param y
-     * @param speed
-     * @param P_DRIVE_COEFF
      * @param path
-     * @param leftSpeed
-     * @param rightSpeed
-     * @param max
      * @return
      */
-    public ArrayList<CurvePoint> gotoPosition(double x, double y, double speed, double P_DRIVE_COEFF, ArrayList<CurvePoint> path, double leftSpeed, double rightSpeed, double max) {
+    public ArrayList<CurvePoint> gotoPosition(double x, double y, ArrayList<CurvePoint> path) {
 
-        // adjust relative speed based on heading error.
-        disaierd_angle = Math.toDegrees(Math.atan2(y, x));
-        error = getError(disaierd_angle);
-        steer = getSteer(error, P_DRIVE_COEFF);
+        double hypotenuse = Math.hypot(x,y);
+        double desiredAngle = Math.toDegrees(Math.atan2(y,x));
+        pidDrive.setSetpoint(desiredAngle);
+        pidDriveEncoder.setSetpoint(hypotenuse);
+
+        correction = pidDrive.performPID(robot.GetGyroAngle());
+        power = pidDriveEncoder.performPID(robot.getY());
+
+        robot.setDriveMotorsPower(power - correction, Hardware.DRIVE_MOTOR_TYPES.LEFT);
+        robot.setDriveMotorsPower(power + correction, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
 
 
-        leftSpeed = speed;
-        rightSpeed = speed;
-        // if driving in reverse, the motor correction also needs to be reversed
-        if(error > 2) {
-            leftSpeed -= steer;
-            rightSpeed += steer;
-        }
-
-        // Normalize speeds if either one exceeds +/- 1.0;
-        max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
-        if (max > 1.0) {
-            leftSpeed /= max;
-            rightSpeed /= max;
-        }
-        robot.setDriveMotorsPower(leftSpeed, Hardware.DRIVE_MOTOR_TYPES.LEFT);
-        robot.setDriveMotorsPower(rightSpeed, Hardware.DRIVE_MOTOR_TYPES.RIGHT);
-
-        for(int i = 0; i < path.size();i++){
+        for(int i = 0; i < path.size(); i++){
             if(path.get(i).toPoint().equals(new Point(robot.getX(), robot.getY()))){
                 path.remove(path.get(i));
             }
@@ -167,9 +175,7 @@ public class RobotMovement extends LinearOpMode {
      * @return
      */
     public double getError(double targetAngle) {
-
         double robotError;
-
         // calculate error in -179 to +180 range  (
         robotError = targetAngle - robot.GetGyroAngle();
         while (robotError > 180)  robotError -= 360;
@@ -204,6 +210,28 @@ public class RobotMovement extends LinearOpMode {
      */
     public double limit(double value,double maxmin) {
         return max(-maxmin, min(value, maxmin));
+    }
+
+    private double getAngle(){
+        // We experimentally determined the Z axis is the axis we want to use for heading angle.
+        // We have to process the angle because the imu works in euler angles so the Z axis is
+        // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
+        // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
+
+        Orientation angles = robot.imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        globalAngle += deltaAngle;
+
+        lastAngles = angles;
+
+        return globalAngle;
     }
 
 

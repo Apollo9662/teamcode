@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MathFunctions {
+    final static double EPSILON = 1e-12;
     /**
      *
      * @param angle
@@ -120,5 +121,20 @@ public class MathFunctions {
         Point p2 = new Point(pointA.x - baX * abScalingFactor2, pointA.y
                 - baY * abScalingFactor2);
         return Arrays.asList(p1, p2);
+    }
+
+
+
+    public static double map(double v,
+                             double start1, double end1,
+                             double start2, double end2) {
+
+        if (Math.abs(end1 - start1) < EPSILON) {
+            throw new ArithmeticException("/ 0");
+        }
+
+        double offset = start2;
+        double ratio = (end2 - start2) / (end1 - start1);
+        return ratio * (v - start1) + offset;
     }
 }

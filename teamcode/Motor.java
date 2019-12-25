@@ -2,9 +2,13 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
-public class Motor implements DcMotor {
+import static java.lang.Math.abs;
+
+public class Motor implements DcMotor{
+
     @Override
     public MotorConfigurationType getMotorType() {
         return null;
@@ -123,5 +127,21 @@ public class Motor implements DcMotor {
     @Override
     public void close() {
 
+    }
+
+    PIDController pid = new PIDController(0.005,0,0);
+
+    public void resetPID(double point,double inputMin,double inputMax,double output){
+        pid.setSetpoint(point);
+        pid.setOutputRange(0, output);
+        pid.setInputRange(inputMin, inputMax);
+        pid.enable();
+
+    }
+
+    public void gotoPosition(double power){
+        resetPID(this.getTargetPosition(),-abs(this.getTargetPosition()),abs(this.getTargetPosition()),power);
+        double outPower = pid.performPID(this.getCurrentPosition());
+        this.setPower(outPower);
     }
 }
