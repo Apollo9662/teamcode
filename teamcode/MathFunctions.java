@@ -137,4 +137,12 @@ public class MathFunctions {
         double ratio = (end2 - start2) / (end1 - start1);
         return ratio * (v - start1) + offset;
     }
+
+    public static boolean inRange(double v,double min,double max){
+        if(v > min && v < max){
+            return true;
+        }else {
+            return false;
+        }
+    }
 }

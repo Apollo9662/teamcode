@@ -30,12 +30,13 @@
         package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.Hardware;
 import org.firstinspires.ftc.teamcode.functions;
 
 import static java.lang.Math.abs;
-import static org.firstinspires.ftc.teamcode.MathFunctions.map;
+import static org.firstinspires.ftc.teamcode.MathFunctions.*;
 
 
 /**
@@ -58,8 +59,8 @@ public class TeleopNew extends functions {
     private Thread slidesOperation = new slidesOperation();
     private Thread clawOperation = new clawOperation();
     private Thread catchers = new catchers();
+    private Thread inputOperation = new InputOperation();
     private Thread stoneLevel = new stoneLevel();
-    private InputOperation inputOperation = new InputOperation();
     private double collectionSpeed = 1;
 
     private boolean isOpen = false;
@@ -73,21 +74,21 @@ public class TeleopNew extends functions {
     private static final double pulleyDiameter = 4.0;     // For figuring circumference
     private static final double COUNTS_PER_INCH_FOR_PULLEY = (countsPer20gearmotor) / (pulleyDiameter * Math.PI);
 
-    private static final long threadSleepTimeOut = 50; // 50 msec
+    private static final long threadSleepTimeOut = 100; // 50 msec
 
     private static final double ticksPerLevel = 30.0;
     private static final int maxLevel = 7;
     private static final double maxElevatorValue = countsPer20gearmotor * (ticksPerLevel * maxLevel);
 
     private int currentLevel = 0;
-
+    private double driftSpeed = 0.5;
     public void runOpMode() {
 
 
         /* Initialize the hardware variables.
          * The init() method of the hardware class does all the work here
          */
-        robot.init(hardwareMap,true);
+        robot.init(hardwareMap, true);
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Say", "Hello Driver");    //
         telemetry.update();
@@ -98,111 +99,137 @@ public class TeleopNew extends functions {
         slidesOperation.start();
         inputOperation.start();
         catchers.start();
-        stoneLevel.start();
+      //return after scrimage misgev
+      //  stoneLevel.start();
+
+
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-            telemetry.addData("left front", robot.driveLeftFront.getCurrentPosition() );
-            telemetry.addData("left back", robot.driveLeftBack.getCurrentPosition() );
-            telemetry.addData("right front", robot.driveRightFront.getCurrentPosition() );
-            telemetry.addData("right back", robot.driveRightBack.getCurrentPosition() );
-            telemetry.addData("vertical", robot.verticalElevator.getCurrentPosition() );
-            telemetry.update();
+           // telemetry.addData("left front", robot.driveLeftFront.getCurrentPosition());
+           // telemetry.addData("left back", robot.driveLeftBack.getCurrentPosition());
+           // telemetry.addData("right front", robot.driveRightFront.getCurrentPosition());
+           // telemetry.addData("right back", robot.driveRightBack.getCurrentPosition());
+           // telemetry.addData("vertical", robot.verticalElevator.getCurrentPosition());
+
             driveOperation();
 
         }
     }
 
 
-    private class clawOperation extends Thread{
-        clawOperation(){ this.setName("clawOperation");}
+    private class clawOperation extends Thread {
+        clawOperation() {
+            this.setName("clawOperation");
+        }
+
         @Override
-        public void run(){
+        public void run() {
             try {
-                while (!isInterrupted() && opModeIsActive()){
-                    while (!isInterrupted() && opModeIsActive()){
+                while (!isInterrupted() && opModeIsActive()) {
+                    while (!isInterrupted() && opModeIsActive()) {
                         double frontMaxPosition = 0;
-                        double frontMinPosition = 1;
+                        double frontMinPosition = 0.62;
 
                         double backMaxPosition = 1;
                         double backMinPosition = 0;
 
+                        boolean emerrgency = false;
+
                         double backPosition;
                         double frontPosition;
-                        if(gamepad2.left_trigger > 0.1){
+                        if (gamepad2.left_trigger > 0.1) {
                             frontPosition = frontMinPosition;
-                        }else{
+                        } else {
                             frontPosition = frontMaxPosition;
                         }
-                        if(gamepad2.right_trigger > 0.1){
-                            telemetry.addData("ga",gamepad2.right_trigger);
+
+                        if (gamepad2.right_trigger > 0.1) {
+                            //telemetry.addData("ga", gamepad2.right_trigger);
                             backPosition = backMinPosition;
-                        }else{
+                        } else {
                             backPosition = backMaxPosition;
                         }
-                        if(gamepad1.left_trigger > 0.1){
-                            frontPosition = frontMinPosition;
+                        if (gamepad2.b){
+                            if (emerrgency = false) {
+                                emerrgency = true;
+                            } else {
+                                emerrgency = false;
+                            }
+                        }
+                        if (gamepad1.left_trigger > 0.1 && emerrgency == false) {
+                            frontPosition = 1;
                         }
                         robot.frontClaw.setPosition(frontPosition);
                         robot.backClaw.setPosition(backPosition);
+                        Thread.sleep(threadSleepTimeOut);
                     }
+                    Thread.sleep(threadSleepTimeOut);
+
                 }
-                Thread.sleep(threadSleepTimeOut);
+            } catch (InterruptedException ignored) {
             }
-            catch (InterruptedException ignored){}
         }
     }
 
 
-
     private class slidesOperation extends Thread {
-        slidesOperation() { this.setName("slidesOperation");}
+        slidesOperation() {
+            this.setName("slidesOperation");
+        }
 
         @Override
         public void run() {
             try {
                 while (!isInterrupted() && opModeIsActive()) {
                     double topLimitSlideSide = 916.75950;
-//                       if (robot.horizontalElevator.getCurrentPosition() > topLimitSlideSide || robot.horizontalElevator.getCurrentPosition() < 0) {
-//                           robot.horizontalElevator.setPower(0);
-//                       } else {
-//                           robot.horizontalElevator.setPower(gamepad2.right_stick_y);
-//                       }
-                    if(gamepad2.right_stick_x > 0.1){
-                        robot.horizontalElevator.setPosition(0.8);
-                    }else if(gamepad2.right_stick_x < -0.1){
-                        robot.horizontalElevator.setPosition(0.2);
-                    }else{
-                        robot.horizontalElevator.setPosition(0);
+                    robot.horizontalElevator.setPower(gamepad2.right_stick_x);
+                    if (gamepad2.left_stick_y < 0.1){
+                        robot.verticalElevator.setPower(0.1);
+                    } else {
+                        robot.verticalElevator.setPower(gamepad2.left_stick_y);
                     }
-                    robot.horizontalElevator.setPosition(gamepad2.right_stick_x);
-                    robot.verticalElevator.setPower(gamepad2.left_stick_y);
-                    telemetry.addData("dakhghjdf",gamepad2.left_stick_y);
+                    Thread.sleep(threadSleepTimeOut);
+
                 }
-                Thread.sleep(threadSleepTimeOut);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+            }
         }
     }
 
 
-    public void driveOperation()  {
-        double turn = -gamepad1.right_stick_x * 0.35;
+    public void driveOperation() {
+        double turn = -gamepad1.right_stick_x * 0.55;
         double right_x = gamepad1.left_stick_x;
         double right_y = gamepad1.left_stick_y;
 
-        double vector = Math.hypot(right_x,right_y);
-        double angle = Math.toDegrees(Math.atan2(right_y,right_x));
+        double vector = Math.hypot(right_x, right_y);
+        double angle = Math.toDegrees(Math.atan2(right_y, right_x));
         angle += 135;
+        right_y = -right_y;
+        telemetry.addData("angle = ",angle);
+        if(gamepad1.a){
+            driftSpeed = 0.8;
+        }else{
+            driftSpeed = 0.5;
+        }
+        if(inRange(angle,20,70) || inRange(angle,200,250) ){
+            robot.driveLeftFront.setPower(right_y - turn);
+            robot.driveRightBack.setPower(right_y + turn);
+            robot.driveLeftBack.setPower(right_y - turn);
+            robot.driveRightFront.setPower(right_y + turn);
+        }else{
+            robot.driveLeftFront.setPower(-right_x* driftSpeed - turn);
+            robot.driveRightBack.setPower(-right_x* driftSpeed + turn);
+            robot.driveLeftBack.setPower(right_x* driftSpeed - turn);
+            robot.driveRightFront.setPower(right_x* driftSpeed + turn);
+        }
 
-        right_x = vector * Math.cos(Math.toRadians(angle));
-        right_y = vector * Math.sin(Math.toRadians(angle));
+        robot.driveLeftFront.setPower(robot.driveLeftFront.getPower() - turn);
+        robot.driveRightBack.setPower(robot.driveRightBack.getPower() + turn);
+        robot.driveLeftBack.setPower(robot.driveLeftBack.getPower() - turn);
+        robot.driveRightFront.setPower(robot.driveRightFront.getPower() + turn);
 
-
-
-        robot.driveLeftFront.setPower(right_y - turn);
-        robot.driveRightBack.setPower(right_y + turn);
-        robot.driveLeftBack.setPower(right_x - turn);
-        robot.driveRightFront.setPower(right_x + turn);
     }
 
     private class reverseDrive extends Thread {
@@ -216,11 +243,14 @@ public class TeleopNew extends functions {
         public void run() {
             try {
                 while (!isInterrupted() && opModeIsActive()) {
-                    while (!isInterrupted() && opModeIsActive()) {
-                        if (gamepad1.left_bumper) {
-                            robot.reverse();
-                            while (gamepad1.left_bumper && opModeIsActive());
+
+                    if (gamepad1.left_bumper) {
+                        robot.reverse();
+                        while (gamepad1.left_bumper && opModeIsActive()){
+                            Thread.sleep(threadSleepTimeOut);
+
                         }
+
                     }
                     Thread.sleep(threadSleepTimeOut);
                 }
@@ -242,12 +272,12 @@ public class TeleopNew extends functions {
             try {
                 while (!isInterrupted() && opModeIsActive()) {
 
-                    if(gamepad1.left_trigger > 0.2) {
+                    if (gamepad1.left_trigger > 0.2) {
                         robot.setCollectMotorsPower(collectionSpeed * gamepad1.left_trigger);
                     }
-                    if(gamepad1.right_trigger > 0.2) {
+                    if (gamepad1.right_trigger > 0.2) {
                         robot.setCollectMotorsPower(-collectionSpeed * gamepad1.right_trigger);
-                    }else if(gamepad1.left_trigger < 0.2){
+                    } else if (gamepad1.left_trigger < 0.2) {
                         robot.setCollectMotorsPower(0);
                     }
 
@@ -265,11 +295,13 @@ public class TeleopNew extends functions {
     }
 
 
-    private class stoneLevel extends Thread{
-        stoneLevel(){this.setName("stoneLevel");}
+    private class stoneLevel extends Thread {
+        stoneLevel() {
+            this.setName("stoneLevel");
+        }
 
         @Override
-        public void run(){
+        public void run() {
             try {
                 while (!isInterrupted() && opModeIsActive()) {
                     if (gamepad2.left_bumper) {
@@ -277,32 +309,40 @@ public class TeleopNew extends functions {
                             currentLevel = currentLevel + 1;
                             telemetry.addData("", "current level +");
                         }
-                        while (gamepad2.left_bumper && opModeIsActive()) ;
+                        while (gamepad2.left_bumper && opModeIsActive()) {
+                            Thread.sleep(threadSleepTimeOut);
+                        }
                     }
                     if (gamepad2.right_bumper) {
                         if (currentLevel > 0) {
                             currentLevel = currentLevel - 1;
                             telemetry.addData("", "current level -");
                         }
-                        while (gamepad2.left_bumper && opModeIsActive()) ;
+                        while (gamepad2.left_bumper && opModeIsActive()) {
+                            Thread.sleep(threadSleepTimeOut);
+                        }
+
                     }
                     if (gamepad2.left_trigger > 0.6) {
                         robot.verticalElevator.setTargetPosition((int) countsPer20gearmotor * 5 * currentLevel);
                     }
                     Thread.sleep(threadSleepTimeOut);
                 }
-            }catch (InterruptedException ignored){
+            } catch (InterruptedException ignored) {
 
             }
         }
     }
-    private class elevatorControl extends Thread{
-        elevatorControl(){this.setName("elevatorControl");}
+
+    private class elevatorControl extends Thread {
+        elevatorControl() {
+            this.setName("elevatorControl");
+        }
 
         @Override
-        public void run(){
+        public void run() {
             try {
-                while(!isInterrupted() && opModeIsActive()) {
+                while (!isInterrupted() && opModeIsActive()) {
                     double verticalRatio = gamepad2.left_stick_y;
                     double verticalPosition = abs(verticalRatio) * maxElevatorValue;
 
@@ -314,22 +354,38 @@ public class TeleopNew extends functions {
 
                     Thread.sleep(threadSleepTimeOut);
                 }
-            }catch (InterruptedException ignored){
+            } catch (InterruptedException ignored) {
 
             }
         }
     }
-    private class catchers extends Thread{
+    public void sweetSystem(){
+        robot.frontClaw.setPosition(0);
+        sleep(250);
+        robot.frontClaw.setPosition(1);
+    }
+
+    private class catchers extends Thread {
         int position = 0;
-        catchers(){setName("catchers");}
+
+        catchers() { setName("catchers"); }
+
         @Override
-        public void run(){
-            while(opModeIsActive() && !isInterrupted()){
-                if(gamepad1.y){
-                    position = position == 1? 0 : 1;
-                    while (gamepad1.y && opModeIsActive());
+        public void run() {
+            try {
+                while (opModeIsActive() && !isInterrupted()) {
+                    if (gamepad1.y) {
+                        position = position == 1 ? 0 : 1;
+                        while (gamepad1.y && opModeIsActive()) {
+                            Thread.sleep(threadSleepTimeOut);
+                        }
+                    }
+                    robot.setCatchers(position);
+                    Thread.sleep(threadSleepTimeOut);
+
                 }
-                robot.setCatchers(position);
+
+            } catch (InterruptedException ignored) {
             }
         }
     }

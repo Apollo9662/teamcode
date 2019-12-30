@@ -36,7 +36,7 @@ public class Hardware {
 
 
     DcMotor verticalElevator = null;
-    Servo horizontalElevator = null;
+    DcMotor horizontalElevator = null;
 
 
     BNO055IMU imu;
@@ -56,6 +56,8 @@ public class Hardware {
     public enum DRIVE_MOTOR_TYPES {
         LEFT,
         RIGHT,
+        FRONT,
+        BACK,
         SIDE_WAYS,
         DIAGONAL_RIGHT,
         DIAGONAL_LEFT,
@@ -90,7 +92,7 @@ public class Hardware {
         leftCollector = ahwMap.get(DcMotor.class, "lc");
 
         verticalElevator = ahwMap.get(DcMotor.class, "eu");
-        horizontalElevator = ahwMap.get(Servo.class, "es");
+        horizontalElevator = ahwMap.get(DcMotor.class, "es");
 
         rightCatcher = ahwMap.get(Servo.class, "rca");
         leftCatcher = ahwMap.get(Servo.class, "lca");
@@ -127,7 +129,6 @@ public class Hardware {
             driveLeftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
-
         reset.x = getX();
         reset.y = getY();
 
@@ -163,7 +164,15 @@ public class Hardware {
                driveRightBack.setPower(power);
 
                 break;
+            case BACK:
+                driveLeftBack.setPower(power);
+                driveRightBack.setPower(power);
+                break;
 
+            case FRONT:
+                driveLeftFront.setPower(power);
+                driveRightFront.setPower(power);
+                break;
             case ALL:
             default:
              //  driveLeftFront.setVelocity(power);
@@ -185,8 +194,14 @@ public class Hardware {
     }
 
     void setCatchers(double position){
-        rightCatcher.setPosition(position);
-        leftCatcher.setPosition(position);
+        if(position == 1){
+            rightCatcher.setPosition(0.45);
+            leftCatcher.setPosition(0);
+        }else{
+            rightCatcher.setPosition(0);
+            leftCatcher.setPosition(0.45);
+        }
+
     }
     public double getX(){
         return driveLeftBack.getCurrentPosition() - reset.x;
