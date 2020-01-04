@@ -34,14 +34,16 @@ public class Hardware {
     private Servo rightCatcher = null;
     private Servo leftCatcher = null;
 
-
     DcMotor verticalElevator = null;
     DcMotor horizontalElevator = null;
 
+    private int encodersTicks = 800;
+    private double pulleyCircumference = 2 * Math.PI;
+    private double ticksPerInch = 800/pulleyCircumference;
 
     BNO055IMU imu;
 
-    Point point() {
+    public Point point() {
         return new Point(getX(),getY());
     }
 
@@ -76,16 +78,9 @@ public class Hardware {
 
     /* Initialize standard Hardware interfaces */
     void init(HardwareMap ahwMap,boolean teleop) {
-        boolean sucses;
-        int counter = 0;
         /* local OpMode members. */
         imu = ahwMap.get(BNO055IMU.class, "imu");
         initImu();
-        //do {
-        //    sucses = initImu();
-         //   counter++;
-
-        //} while (!sucses && counter < 7);
         // Save reference to Hardware map
 
 
@@ -104,8 +99,8 @@ public class Hardware {
         rightCatcher = ahwMap.get(Servo.class, "rca");
         leftCatcher = ahwMap.get(Servo.class, "lca");
 
-        frontClaw = ahwMap.get(Servo.class,"os");
-        backClaw = ahwMap.get(Servo.class,"os2" );
+        frontClaw = ahwMap.get(Servo.class,"os2");
+        backClaw = ahwMap.get(Servo.class,"os" );
 
 
         driveRightBack.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -124,16 +119,24 @@ public class Hardware {
         driveRightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         driveLeftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         driveLeftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightCollector.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftCollector.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         if(!teleop) {
             driveRightFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             driveRightBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             driveLeftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             driveLeftFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightCollector.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftCollector.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         }else{
             driveRightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             driveRightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             driveLeftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             driveLeftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightCollector.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftCollector.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
         reset.x = getX();
@@ -206,19 +209,39 @@ public class Hardware {
             leftCatcher.setPosition(0);
         }else{
             rightCatcher.setPosition(0);
-            leftCatcher.setPosition(0.55);
+            leftCatcher.setPosition(0.45);
         }
 
     }
-    public double getX(){
+    public double getX(double angle){
+
         return driveLeftBack.getCurrentPosition() - reset.x;
     }
 
     public double getY(){
         return driveRightBack.getCurrentPosition() - reset.y;
     }
-    public boolean initImu(){
-        boolean sucses;
+
+    public int calculateXY(double angle, int lastCurrentPositionX, int lastCurrentPositionY){
+        if(!(Math.abs(this.XEncoder() - lastCurrentPositionX) < (int)(ticksPerInch)) || !(Math.abs(this.YEncoder() - lastCurrentPositionY) < (int)(ticksPerInch))) {
+            if (angle > 45 && angle <= 135) {
+
+            }
+            else if (angle > 135 && angle <= 225) {
+                position.x -= Math.cos(angle) * this.XEncoder() - lastCurrentPositionX;
+                position.y -= Math.sin(angle) * this.YEncoder() - lastCurrentPositionY;
+            }
+            else if(angle > 225 && angle <= 315){
+
+            }
+            else {
+                position.x += Math.cos(angle) * this.XEncoder() - lastCurrentPositionX;
+                position.y += Math.sin(angle) * this.YEncoder() - lastCurrentPositionY;
+            }
+        }
+    }
+
+    public void initImu(){
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
@@ -230,10 +253,15 @@ public class Hardware {
         // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
         // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
         // and named "imu".
-        sucses = imu.initialize(parameters);
-        return sucses;
+        imu.initialize(parameters);
+    }
 
+    public int XEncoder(){
+        return this.rightCollector.getCurrentPosition();
+    }
 
+    public int YEncoder(){
+        return this.leftCollector.getCurrentPosition();
     }
  }
 
