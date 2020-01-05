@@ -1,4 +1,3 @@
-
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -55,7 +54,7 @@ public class Hardware {
     }
 
 
-    public enum DRIVE_MOTOR_TYPES {
+    public enum DRIVE_MOTOR_TYPES{
         LEFT,
         RIGHT,
         FRONT,
@@ -70,8 +69,7 @@ public class Hardware {
     public Hardware(){
 
     }
-    float GetGyroAngle(){
-
+    public float GetGyroAngle(){
         Orientation angles =imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         return(AngleUnit.DEGREES.fromUnit(angles.angleUnit,angles.firstAngle));
     }
@@ -213,31 +211,49 @@ public class Hardware {
         }
 
     }
-    public double getX(double angle){
 
-        return driveLeftBack.getCurrentPosition() - reset.x;
+    /** returns the value of the robot on the X Axis */
+    public double getX(){
+        return position.x;
     }
 
+    /** returns the value of the robot on the Y Axis */
     public double getY(){
-        return driveRightBack.getCurrentPosition() - reset.y;
+        return position.y;
     }
 
-    public int calculateXY(double angle, int lastCurrentPositionX, int lastCurrentPositionY){
-        if(!(Math.abs(this.XEncoder() - lastCurrentPositionX) < (int)(ticksPerInch)) || !(Math.abs(this.YEncoder() - lastCurrentPositionY) < (int)(ticksPerInch))) {
-            if (angle > 45 && angle <= 135) {
+    /** calculates the  */
+    public void calculateXY(double gyroAngle, int lastCurrentPositionX, int lastCurrentPositionY){
+        double adjacent;
+        double opposite;
+        double hypotenuse;
 
-            }
-            else if (angle > 135 && angle <= 225) {
-                position.x -= Math.cos(angle) * this.XEncoder() - lastCurrentPositionX;
-                position.y -= Math.sin(angle) * this.YEncoder() - lastCurrentPositionY;
-            }
-            else if(angle > 225 && angle <= 315){
+        double adjacent2;
+        double opposite2;
 
-            }
-            else {
-                position.x += Math.cos(angle) * this.XEncoder() - lastCurrentPositionX;
-                position.y += Math.sin(angle) * this.YEncoder() - lastCurrentPositionY;
-            }
+        adjacent = lastCurrentPositionX - this.XEncoder();
+        opposite = lastCurrentPositionY - this.YEncoder();
+        hypotenuse = Math.hypot(adjacent, opposite);
+        double angle = calculateAngles(freeFlowAngle(adjacent, opposite), gyroAngle);
+
+        adjacent2 = Math.cos(angle) * hypotenuse;
+        opposite2 = Math.sin(angle) * hypotenuse;
+
+        if(angle >= 45 && angle < 135){
+            position.x += adjacent2;
+            position.y += opposite2;
+        }
+        else if(angle >= 135 && angle < 225){
+            position.x += opposite2;
+            position.y += adjacent2;
+        }
+        else if(angle >= 225 && angle < 315){
+            position.x += adjacent2;
+            position.y += opposite2;
+        }
+        else{
+            position.x += opposite2;
+            position.y += adjacent2;
         }
     }
 
@@ -256,12 +272,33 @@ public class Hardware {
         imu.initialize(parameters);
     }
 
-    public int XEncoder(){
+
+    /** get the values from the XY encoders */
+    private int XEncoder(){
         return this.rightCollector.getCurrentPosition();
     }
 
-    public int YEncoder(){
+    private int YEncoder(){
         return this.leftCollector.getCurrentPosition();
+    }
+
+    /** calculates the angle that the robot moves using the XY encoders */
+    private double freeFlowAngle(double adjacent, double opposite){
+        double tan = opposite/adjacent;
+        double arcTan = Math.atan(tan);
+        return arcTan;
+    }
+
+
+    private double calculateAngles(double angle1, double angle2){
+        double angle = angle1 + angle2;
+        return angle;
+    }
+
+    /** resets the values of the X and Y encoders */
+    public void resetXYEncoder(){
+        position.x = 0;
+        position.y = 0;
     }
  }
 
