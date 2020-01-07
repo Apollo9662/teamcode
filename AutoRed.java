@@ -91,7 +91,7 @@ public class AutoRed extends autonum{
         robot.setCollectMotorsPower(0);
         robot.setCollectMotorsPower(0);
         robot.setCollectMotorsPower(-0.4);
-        pidDrive(0.5,63,-90,right);
+        pidDrive(0.5,67,-90,right);
         robot.setCollectMotorsPower(0);
         pidDrive(0.6,-150,-90,normal);
         pidTurn(0.2,-180);
@@ -115,7 +115,7 @@ public class AutoRed extends autonum{
         robot.frontClaw.setPosition(0.85);
         robot.setCollectMotorsPower(0);
         robot.setCollectMotorsPower(-0.4);
-        pidDrive(0.5,62,-90,right);
+        pidDrive(0.5,67,-90,right);
         robot.setCollectMotorsPower(0);
         pidDrive(0.6,-175,-90,normal);
         pidTurn(0.2,-180);
@@ -139,7 +139,7 @@ public class AutoRed extends autonum{
         robot.frontClaw.setPosition(0.85);
         robot.setCollectMotorsPower(0);
         robot.setCollectMotorsPower(-0.4);
-        pidDrive(0.5,62,-90,right);
+        pidDrive(0.5,67,-90,right);
         robot.setCollectMotorsPower(0);
         pidDrive(0.6,-163,-90,normal);
         pidTurn(0.2,-170);
