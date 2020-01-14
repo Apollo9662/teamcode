@@ -1,12 +1,17 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.app.Activity;
+import android.view.View;
+
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -25,8 +30,8 @@ public class Hardware {
     DcMotorEx driveLeftFront = null;
     DcMotorEx driveRightFront = null;
 
-    private DcMotor rightCollector = null;
-    private DcMotor leftCollector = null;
+    DcMotor rightCollector = null;
+    DcMotor leftCollector = null;
 
     Servo frontClaw = null;
     Servo backClaw = null;
@@ -41,6 +46,15 @@ public class Hardware {
 
     BNO055IMU imu;
 
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
+
+
+    public static double frontClosePos = 0.9;
+    public static double frontOpenPos = 0.07;
+
+    public static double backClosePos =1;
+    public static double  backOpenPos = 0.2;
     Point point() {
         return new Point(getX(),getY());
     }
@@ -79,8 +93,12 @@ public class Hardware {
         boolean sucses;
         int counter = 0;
         /* local OpMode members. */
-        imu = ahwMap.get(BNO055IMU.class, "imu 1");
-        initImu();
+        imu = ahwMap.get(BNO055IMU.class, "imu ");
+        if (initImu()){}
+        else {
+            imu = ahwMap.get(BNO055IMU.class , " imu 1");
+            initImu();
+        }
         //do {
         //    sucses = initImu();
          //   counter++;
@@ -89,7 +107,17 @@ public class Hardware {
         // Save reference to Hardware map
 
 
-        // Define and Initialize Motors
+        sensorColor =ahwMap.get(ColorSensor.class, "scd");
+
+        sensorDistance = ahwMap.get(DistanceSensor.class, "scd");
+
+        float hsvValues[] = {0F, 0F, 0F};
+        final float values[] = hsvValues;
+        final double SCALE_FACTOR = 255;
+        int relativeLayoutId = ahwMap.appContext.getResources().getIdentifier("RelativeLayout", "id", ahwMap.appContext.getPackageName());
+        final View relativeLayout = ((Activity) ahwMap.appContext).findViewById(relativeLayoutId);
+
+
         driveLeftBack = ahwMap.get(DcMotorEx.class, "dlb");
         driveRightBack = ahwMap.get(DcMotorEx.class, "drb");
         driveRightFront = ahwMap.get(DcMotorEx.class, "drf");
@@ -135,6 +163,10 @@ public class Hardware {
             driveLeftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             driveLeftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
+
+        rightCollector.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftCollector.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
 
         reset.x = getX();
         reset.y = getY();
